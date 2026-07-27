@@ -102,7 +102,12 @@ export default function Home() {
             className={"tab" + (view === v ? " on" : "")}
             onClick={() => setView(v)}
           >
-            {v === "map" ? "Harita" : v === "collage" ? "Kolaj" : "Zaman Tüneli"}
+            <span className="tab-icon" aria-hidden>
+              {v === "map" ? "🗺" : v === "collage" ? "🖼" : "🕰"}
+            </span>
+            <span className="tab-lbl">
+              {v === "map" ? "Harita" : v === "collage" ? "Kolaj" : "Zaman Tüneli"}
+            </span>
           </button>
         ))}
       </nav>
@@ -120,6 +125,14 @@ export default function Home() {
         {view === "collage" && <Collage memories={visible} onOpen={open} />}
         {view === "timeline" && <Timeline memories={visible} onOpen={open} />}
       </main>
+
+      <button
+        className="fab"
+        onClick={() => setUploadOpen(true)}
+        aria-label="Anı ekle"
+      >
+        ＋
+      </button>
 
       {slider && (
         <MemorySlider items={slider.items} startIndex={slider.index} onClose={() => setSlider(null)} />
