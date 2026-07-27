@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Memory } from "../types";
+import { useAuth } from "../context/AuthContext";
+import { useAlbum } from "../context/AlbumContext";
 
 const fmt = (d: string) =>
   new Date(d).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
@@ -15,8 +17,31 @@ export default function MemorySlider({
   onClose: () => void;
 }) {
   const [i, setI] = useState(startIndex);
+  const [deleting, setDeleting] = useState(false);
+  const { session } = useAuth();
+  const { deleteMemory } = useAlbum();
   const m = items[i];
   const multi = items.length > 1;
+  const isOwn = !!(session && m && m.user_id === session.user.id);
+
+  const handleDelete = async () => {
+    if (!m) return;
+    if (!confirm("Bu anıyı silmek istediğine emin misin? Bu işlem geri alınamaz.")) return;
+    setDeleting(true);
+    const { error } = await deleteMemory(m);
+    setDeleting(false);
+    if (error) {
+      alert("Silinemedi: " + error);
+      return;
+    }
+    if (items.length <= 1) {
+      onClose();
+    } else {
+      const nextIdx = i >= items.length - 1 ? i - 1 : i;
+      items.splice(i, 1);
+      setI(nextIdx);
+    }
+  };
   const next = () => setI((v) => (v + 1) % items.length);
   const prev = () => setI((v) => (v - 1 + items.length) % items.length);
 
@@ -71,6 +96,16 @@ export default function MemorySlider({
             </span>
             <span>{m.author?.display_name || "Bilinmiyor"} yükledi</span>
             <span className="date">{fmt(m.taken_at)}</span>
+            {isOwn && (
+              <button
+                className="btn ghost sm danger"
+                onClick={handleDelete}
+                disabled={deleting}
+                style={{ marginLeft: "auto" }}
+              >
+                {deleting ? "Siliniyor…" : "Sil"}
+              </button>
+            )}
           </div>
         </div>
       </div>

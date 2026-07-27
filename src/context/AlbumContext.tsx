@@ -10,6 +10,7 @@ interface AlbumValue {
   loading: boolean;
   createAlbum: (name: string) => Promise<{ error?: string }>;
   joinAlbum: (code: string) => Promise<{ error?: string }>;
+  deleteMemory: (memory: Memory) => Promise<{ error?: string }>;
   reload: () => Promise<void>;
 }
 
@@ -25,21 +26,30 @@ export function AlbumProvider({ children }: { children: ReactNode }) {
   const loadMembersAndMemories = useCallback(async (albumId: string) => {
     const { data: memberRows } = await supabase
       .from("album_members")
-      .select("user_id, profiles(*)")
+      .select("user_id")
       .eq("album_id", albumId);
-    const profs = (memberRows || [])
-      .map((r: { profiles: Profile | Profile[] | null }) =>
-        Array.isArray(r.profiles) ? r.profiles[0] : r.profiles,
-      )
-      .filter(Boolean) as Profile[];
-    setMembers(profs);
+    const memberIds = (memberRows || []).map((r: { user_id: string }) => r.user_id);
 
     const { data: memRows } = await supabase
       .from("memories")
       .select("*")
       .eq("album_id", albumId)
       .order("taken_at", { ascending: true });
+
+    const memoryAuthorIds = (memRows || []).map((m: Memory) => m.user_id);
+    const allIds = Array.from(new Set([...memberIds, ...memoryAuthorIds]));
+
+    let profs: Profile[] = [];
+    if (allIds.length) {
+      const { data: profRows } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", allIds);
+      profs = (profRows || []) as Profile[];
+    }
+
     const byId = new Map(profs.map((p) => [p.id, p]));
+    setMembers(memberIds.map((id) => byId.get(id)).filter(Boolean) as Profile[]);
     setMemories(
       (memRows || []).map((m: Memory) => ({ ...m, author: byId.get(m.user_id) })),
     );
@@ -109,9 +119,34 @@ export function AlbumProvider({ children }: { children: ReactNode }) {
     return {};
   };
 
+  const deleteMemory: AlbumValue["deleteMemory"] = async (memory) => {
+    if (!session) return { error: "Oturum yok" };
+    if (memory.user_id !== session.user.id)
+      return { error: "Sadece kendi anını silebilirsin" };
+
+    const { error } = await supabase.from("memories").delete().eq("id", memory.id);
+    if (error) return { error: error.message };
+
+    // Storage'dan medyayı da sil (public URL'den path'i çıkar)
+    try {
+      const url = memory.media_url;
+      const marker = "/storage/v1/object/public/media/";
+      const idx = url.indexOf(marker);
+      if (idx >= 0) {
+        const path = decodeURIComponent(url.slice(idx + marker.length));
+        await supabase.storage.from("media").remove([path]);
+      }
+    } catch {
+      // Medya silinemese bile DB satırı silindi — sessizce geç
+    }
+
+    if (album) await loadMembersAndMemories(album.id);
+    return {};
+  };
+
   return (
     <AlbumCtx.Provider
-      value={{ album, members, memories, loading, createAlbum, joinAlbum, reload }}
+      value={{ album, members, memories, loading, createAlbum, joinAlbum, deleteMemory, reload }}
     >
       {children}
     </AlbumCtx.Provider>

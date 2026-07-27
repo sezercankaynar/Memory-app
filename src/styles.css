@@ -49,7 +49,10 @@ code { font-family: ui-monospace, Menlo, monospace; background: var(--paper-2); 
 .btn.primary { background: var(--sezer); color: #fff; }
 .btn.primary:hover:not(:disabled) { filter: brightness(1.06); }
 .btn.ghost { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); }
+.btn.ghost:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 6%, transparent); }
 .btn.sm { padding: 8px 14px; font-size: 13px; }
+.btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
+.btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 12%, transparent); }
 .link { background: 0; border: 0; color: var(--sezer); cursor: pointer; font: inherit; text-decoration: underline; }
 
 .banner { border-radius: 10px; padding: 9px 12px; font-size: 13px; }
