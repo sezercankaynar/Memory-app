@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Memory } from "../types";
 import { useAuth } from "../context/AuthContext";
 import { useAlbum } from "../context/AlbumContext";
+import EditMemoryDialog from "./EditMemoryDialog";
 
 const fmt = (d: string) =>
   new Date(d).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
@@ -18,9 +19,18 @@ export default function MemorySlider({
 }) {
   const [i, setI] = useState(startIndex);
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [lightbox, setLightbox] = useState(false);
   const { session } = useAuth();
-  const { deleteMemory } = useAlbum();
-  const m = items[i];
+  const { deleteMemory, memories: liveMemories } = useAlbum();
+
+  // items canlı listeyle senkron kalsın (düzenleme sonrası güncel gösterim)
+  const m = (() => {
+    const cur = items[i];
+    if (!cur) return cur;
+    const live = liveMemories.find((x) => x.id === cur.id);
+    return live || cur;
+  })();
   const multi = items.length > 1;
   const isOwn = !!(session && m && m.user_id === session.user.id);
 
@@ -47,13 +57,18 @@ export default function MemorySlider({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (lightbox) {
+        if (e.key === "Escape") setLightbox(false);
+        return;
+      }
+      if (editing) return;
       if (e.key === "Escape") onClose();
       if (multi && e.key === "ArrowRight") next();
       if (multi && e.key === "ArrowLeft") prev();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [multi, onClose]);
+  }, [multi, onClose, lightbox, editing]);
 
   if (!m) return null;
   const initial = (m.author?.display_name || "?").charAt(0).toUpperCase();
@@ -81,7 +96,23 @@ export default function MemorySlider({
           {m.media_type === "video" ? (
             <video src={m.media_url} controls playsInline className="media" />
           ) : (
-            <img src={m.media_url} alt={m.place || "Anı"} className="media" />
+            <>
+              <img
+                src={m.media_url}
+                alt={m.place || "Anı"}
+                className="media clickable"
+                onClick={() => setLightbox(true)}
+              />
+              <button
+                type="button"
+                className="expand-btn"
+                onClick={() => setLightbox(true)}
+                aria-label="Orijinal boyutta görüntüle"
+                title="Orijinal boyutta"
+              >
+                ⤢
+              </button>
+            </>
           )}
         </div>
         <div className="body">
@@ -97,18 +128,54 @@ export default function MemorySlider({
             <span>{m.author?.display_name || "Bilinmiyor"} yükledi</span>
             <span className="date">{fmt(m.taken_at)}</span>
             {isOwn && (
-              <button
-                className="btn ghost sm danger"
-                onClick={handleDelete}
-                disabled={deleting}
-                style={{ marginLeft: "auto" }}
-              >
-                {deleting ? "Siliniyor…" : "Sil"}
-              </button>
+              <div className="own-actions">
+                <button
+                  className="btn ghost sm"
+                  onClick={() => setEditing(true)}
+                  disabled={deleting}
+                >
+                  Düzenle
+                </button>
+                <button
+                  className="btn ghost sm danger"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                >
+                  {deleting ? "Siliniyor…" : "Sil"}
+                </button>
+              </div>
             )}
           </div>
         </div>
       </div>
+
+      {lightbox && m.media_type === "photo" && (
+        <div
+          className="lightbox"
+          onClick={() => setLightbox(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            className="close lightbox-close"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightbox(false);
+            }}
+            aria-label="Kapat"
+          >
+            ×
+          </button>
+          <img
+            src={m.media_url}
+            alt={m.place || "Anı"}
+            className="lightbox-img"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
+      {editing && m && <EditMemoryDialog memory={m} onClose={() => setEditing(false)} />}
     </div>
   );
 }

@@ -11,6 +11,10 @@ interface AlbumValue {
   createAlbum: (name: string) => Promise<{ error?: string }>;
   joinAlbum: (code: string) => Promise<{ error?: string }>;
   deleteMemory: (memory: Memory) => Promise<{ error?: string }>;
+  updateMemory: (
+    memory: Memory,
+    patch: { place?: string | null; caption?: string | null; lat?: number; lon?: number; taken_at?: string },
+  ) => Promise<{ error?: string }>;
   reload: () => Promise<void>;
 }
 
@@ -144,9 +148,29 @@ export function AlbumProvider({ children }: { children: ReactNode }) {
     return {};
   };
 
+  const updateMemory: AlbumValue["updateMemory"] = async (memory, patch) => {
+    if (!session) return { error: "Oturum yok" };
+    if (memory.user_id !== session.user.id)
+      return { error: "Sadece kendi anını düzenleyebilirsin" };
+    const { error } = await supabase.from("memories").update(patch).eq("id", memory.id);
+    if (error) return { error: error.message };
+    if (album) await loadMembersAndMemories(album.id);
+    return {};
+  };
+
   return (
     <AlbumCtx.Provider
-      value={{ album, members, memories, loading, createAlbum, joinAlbum, deleteMemory, reload }}
+      value={{
+        album,
+        members,
+        memories,
+        loading,
+        createAlbum,
+        joinAlbum,
+        deleteMemory,
+        updateMemory,
+        reload,
+      }}
     >
       {children}
     </AlbumCtx.Provider>

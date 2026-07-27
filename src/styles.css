@@ -141,8 +141,52 @@ input:focus, textarea:focus { outline: 2px solid var(--sezer); outline-offset: -
 .coord { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--ink-soft); margin-top: 2px; font-variant-numeric: tabular-nums; }
 .coord.small { font-size: 11px; }
 .memcard .cap { margin: 12px 0; }
-.memcard .foot { display: flex; align-items: center; gap: 10px; font-size: 13px; padding-top: 12px; border-top: 1px solid var(--line); }
+.memcard .foot { display: flex; align-items: center; gap: 10px; font-size: 13px; padding-top: 12px; border-top: 1px solid var(--line); flex-wrap: wrap; }
 .memcard .foot .date { margin-left: auto; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.own-actions { display: flex; gap: 6px; margin-left: auto; }
+.memcard .foot .own-actions ~ .date, .memcard .foot .date + .own-actions { margin-left: 0; }
+.media.clickable { cursor: zoom-in; }
+.expand-btn { position: absolute; top: 10px; left: 10px; width: 34px; height: 34px; border: 0; border-radius: 10px; background: rgb(0 0 0 / .45); color: #fff; font-size: 16px; cursor: pointer; z-index: 3; display: grid; place-items: center; backdrop-filter: blur(4px); }
+.expand-btn:hover { background: rgb(0 0 0 / .6); }
+
+/* ---------- lightbox: orijinal boyut görüntüleyici ---------- */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / .94);
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: zoom-out;
+  overflow: auto;
+}
+.lightbox-img {
+  max-width: 100vw;
+  max-height: 100vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  cursor: default;
+  touch-action: pinch-zoom;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.lightbox-close {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top));
+  right: 14px;
+  z-index: 61;
+  width: 40px;
+  height: 40px;
+  background: rgb(0 0 0 / .55);
+  color: #fff;
+  font-size: 22px;
+  border-radius: 50%;
+  border: 0;
+  cursor: pointer;
+}
 
 /* ---------- upload dialog ---------- */
 .dialog { background: var(--card); border-radius: 16px; border: 1px solid var(--line); box-shadow: 0 24px 60px rgb(0 0 0 / .45); width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; }
